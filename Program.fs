@@ -26,7 +26,7 @@ let rec merge ps qs =
 
 let merge_list es = List.fold merge [] es
 
-// find the rightmost 
+// find the least left offset of the extent l2.
 let rec fit (l1:Extent) (l2:Extent) =
     match (l1,l2) with
     | (((_,p)::ps), ((q,_)::qs)) ->
@@ -35,6 +35,7 @@ let rec fit (l1:Extent) (l2:Extent) =
         0.0
 
 // es is a list of extents
+// Finds the least left location of the entire subtree with extents es
 let fit_list_left es =
     let rec fit_list_inner acc es =   
         match es with
@@ -64,8 +65,6 @@ let design tree =
     design_inner tree |> fst
 
 
-let e1 :Extent = [(1.0,2.0) ; (1.0, 5.0)]
-let e2 :Extent = [(0.0,5.0) ; (9.0, 13.0)]
 
 let t = Node(5, [Node(2, [Node(1,[])]); Node(3,[]); Node(4,[Node(6,[])])])
 
