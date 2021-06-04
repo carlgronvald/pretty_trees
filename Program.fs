@@ -34,8 +34,10 @@ let rec fit (l1:Extent) (l2:Extent) =
     | (_,_) ->
         0.0
 
-// es is a list of extents
-// Finds the least left location of the entire subtree with extents es
+/// 
+/// Finds the least left position of all subtrees with individual extents es.
+/// 
+/// es is a list of extents
 let fit_list_left es =
     let rec fit_list_inner acc es =   
         match es with
@@ -46,12 +48,15 @@ let fit_list_left es =
     fit_list_inner [] es
 
 
+/// Finds the least right positions of all subtrees with passed extents.
+/// Does exactly the opposite of fit_list_right
 let fit_list_right = List.rev << List.map (fun x -> -x) << fit_list_left << List.map flip_extent << List.rev
 
 let mean (x,y) = (x+y)/2.0
+/// The mean of right fitting and left fitting gives us a perfectly symmetric fit.
 let fit_list es = List.map mean (List.zip (fit_list_left es) (fit_list_right es))
 
-
+/// Returns a positioned tree where all nodes have a location
 let design tree =
     let rec design_inner (Node(label, subtrees)) =
         let (trees, extents) = List.unzip (List.map design_inner subtrees)
