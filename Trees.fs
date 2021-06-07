@@ -1,6 +1,7 @@
 ﻿module Trees
 
 type Tree<'a> = Node of 'a * Tree<'a> list
+//what is the mean of ' ?
 // Extent contains 1: leftmost location and 2: rightmost location in each row
 type Extent = (float * float) list
 
@@ -12,6 +13,7 @@ let flip_extent (e : Extent) = List.map(fun (p,q) -> (-p, -q)) e
 let move_tree (Node((label, x), subtrees) , (xprime:float)) =
     Node((label, x+xprime), subtrees)
 
+// Recursive function definition
 let rec merge ps qs =
     match (ps,qs) with
     | ([], qs) -> qs

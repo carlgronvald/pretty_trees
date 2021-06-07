@@ -1,18 +1,15 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp5.0</TargetFramework>
     <RootNamespace>Applied_Functional_Programming</RootNamespace>
   </PropertyGroup>
-
   <ItemGroup>
     <Compile Include="Trees.fs" />
+    <Compile Include="WenjieTry.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
-
   <ItemGroup>
     <PackageReference Include="FsCheck" Version="2.15.3" />
   </ItemGroup>
-
 </Project>
