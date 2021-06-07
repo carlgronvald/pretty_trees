@@ -43,14 +43,23 @@ let fit_list_left es =
         match es with
         | (e::es) ->
             let x = fit acc e;
-            x :: fit_list_inner( (merge acc (move_extent (e,x)))) es
+            x :: fit_list_inner (merge acc (move_extent (e,x))) es
         | [] -> []
     fit_list_inner [] es
+
+let fit_list_right es =
+    let rec fit_list_inner acc es =   
+        match es with
+        | (e::es) ->
+            let x = -(fit e acc);
+            x :: fit_list_inner (merge (move_extent (e,x)) acc) es
+        | [] -> []
+    List.rev (fit_list_inner [] (List.rev es))
 
 
 /// Finds the least right positions of all subtrees with passed extents.
 /// Does exactly the opposite of fit_list_right
-let fit_list_right = List.rev << List.map (fun x -> -x) << fit_list_left << List.map flip_extent << List.rev
+let fit_list_right_good = List.rev << (List.map (fun x -> -x)) << fit_list_left << (List.map flip_extent) << List.rev
 
 let mean (x,y) = (x+y)/2.0
 /// The mean of right fitting and left fitting gives us a perfectly symmetric fit.
@@ -71,12 +80,10 @@ let design tree =
 
 
 
-let t = Node('a', [Node('b', [Node('c',[])]); Node('d',[]); Node('e',[Node('f',[])])])
-
 /// Converts a relatively positioned tree to an absolutely positioned tree 
 let absolute_positioned_tree postree =
     let rec helper (Node((label, position), ts)) (translation:float) =
-        (label, position+translation) :: (List.collect (fun t -> helper t (translation+position) ) ts)
+        Node((label, position+translation), (List.map (fun t -> helper t (translation+position) ) ts))
     helper postree 0.0
 
 /// Do a breadth first search by level
@@ -97,12 +104,14 @@ let level_bfs tree =
             helper rest (next_level@ts) (acc @ [x]) acc_old
     helper [tree] [] [] []
 
-let tt = Node('a', [Node('b', [Node('d', []); Node('e', []); Node('f', [])]); Node('c', [])])
-let b2 = level_bfs tt
-printf "level bfs %A" b2
-let rpt = design tt
-let apt = absolute_positioned_tree rpt
-printf "absolutely positioned tree %A" apt
+
+//let tt = Node('a', [Node('b', []); Node('c', []); Node('d', [])])
+//let tt = Node('a', [Node('b', [Node('d', []); Node('e', []); Node('f', [])]); Node('c', [])])
+//let b2 = level_bfs tt
+//printf "level bfs %A" b2
+//let rpt = design tt
+//let apt = absolute_positioned_tree rpt
+//printf "absolutely positioned tree %A" apt
 [<EntryPoint>]
 let main argv =
     printfn ""
