@@ -5,8 +5,11 @@
     <RootNamespace>Applied_Functional_Programming</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+<<<<<<< HEAD
     <Compile Include="Trees.fs" />
     <Compile Include="WenjieTry.fs" />
+=======
+>>>>>>> 85b1b5adc7c8422c2899cba0613fc03b28fd5529
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>
