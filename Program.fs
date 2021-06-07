@@ -73,6 +73,7 @@ let design tree =
 
 let t = Node('a', [Node('b', [Node('c',[])]); Node('d',[]); Node('e',[Node('f',[])])])
 
+/// Converts a relatively positioned tree to an absolutely positioned tree 
 let absolute_positioned_tree postree =
     let rec helper (Node((label, position), ts)) (translation:float) =
         (label, position+translation) :: (List.collect (fun t -> helper t (translation+position) ) ts)
