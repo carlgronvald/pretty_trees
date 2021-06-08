@@ -13,6 +13,70 @@ exception NodeNoChildren of string
 // Extent contains 1: leftmost location and 2: rightmost location in each row
 type Extent = (float * float) list
 
+// Tree positioning functions
+let rmax (p:float) (q:float) :float  =
+    if p > q then p else q
+
+let move_extent ((es:Extent),(x:float)) : Extent = List.map ( fun (p,q) -> (p+x, q+x)) es
+let flip_extent (e : Extent) = List.map(fun (p,q) -> (-p, -q)) e
+let move_tree (Node((label, x), subtrees) , (xprime:float)) =
+    Node((label, x+xprime), subtrees)
+
+let rec merge ps qs =
+    match (ps,qs) with
+    | ([], qs) -> qs
+    | (ps, []) -> ps
+    | (((p,_)::ps), ((_,q)::qs)) -> (p,q) :: merge ps qs
+
+let merge_list es = List.fold merge [] es
+
+// find the least left offset of the extent l2.
+let rec fit (l1:Extent) (l2:Extent) =
+    match (l1,l2) with
+    | (((_,p)::ps), ((q,_)::qs)) ->
+        rmax (fit ps qs) (p-q+1.0)
+    | (_,_) ->
+        0.0
+
+let fit_list_left es =
+    let rec fit_list_inner acc es =
+        match es with
+        | (e::es) ->
+            let x = fit acc e;
+            x :: fit_list_inner (merge acc (move_extent (e,x))) es
+        | [] -> []
+    fit_list_inner [] es
+
+let fit_list_right es =
+    let rec fit_list_inner acc es =
+        match es with
+        | (e::es) ->
+            let x = -(fit e acc);
+            x :: fit_list_inner (merge (move_extent (e,x)) acc) es
+        | [] -> []
+    List.rev (fit_list_inner [] (List.rev es))
+
+
+let mean (x,y) = (x+y)/2.0
+/// The mean of right fitting and left fitting gives us a perfectly symmetric fit.
+let fit_list es = List.map mean (List.zip (fit_list_left es) (fit_list_right es))
+
+
+
+/// Returns a positioned tree where all nodes have a location
+let design tree =
+    let rec design_inner (Node(label, subtrees)) =
+        let (trees, extents) = List.unzip (List.map design_inner subtrees)
+        let positions = fit_list extents
+        let ptrees = List.map move_tree (List.zip trees positions)
+        let pextents = List.map move_extent (List.zip extents positions)
+        let resultextent = (0.0,0.0) :: merge_list pextents
+        let resulttree = Node((label, 0.0), ptrees)
+        (resulttree, resultextent)
+
+    design_inner tree |> fst
+
+
 // FSCHECK/VERIFICATION FUNCTIONS //
 // Criterion 1 functions
 
@@ -69,6 +133,7 @@ let list_mean (xs : float list) : float =
 
 let get_node_pos (Node((_,pos),_)) = pos
 
+
 let mean_pos_of_children abs_postree =
     match abs_postree with
     | (Node((v,abs_pos),[])) -> raise (NodeNoChildren ("This node has no children"))
@@ -91,85 +156,50 @@ let rec reflect (Node(v, subtrees)) =
 let rec reflectpos (Node((v,x : float), subtrees)) =
     Node((v, -x), List.map reflectpos subtrees)
 
-let matching_tree_pairs pairs =
-    List.fold (fun s ((v1,pos1), (v2,pos2)) -> s && pos1 = pos2 && v1 = v2 ) true pairs
+let preorder tree =
+    let rec helper depth subtree =
+        match subtree with
+        | Node(_, []) -> 
+            [depth]
+        | Node(_, ts) ->
+            depth :: List.collect (helper (depth+1)) ts
+    helper 0 tree
 
 let flat_bfs tree =
     let rec helper next acc =
         match next with
         | [] -> acc
         | Node(x, ts)::rest ->
-            helper rest (x::acc)
+            helper (rest@ts) (Node(x,ts)::acc)
     helper [tree] []
 
 
 
-let rmax (p:float) (q:float) :float  =
-    if p > q then p else q
 
-let move_extent ((es:Extent),(x:float)) : Extent = List.map ( fun (p,q) -> (p+x, q+x)) es
-let flip_extent (e : Extent) = List.map(fun (p,q) -> (-p, -q)) e
-let move_tree (Node((label, x), subtrees) , (xprime:float)) =
-    Node((label, x+xprime), subtrees)
+let matching_pairs pairs = List.fold (fun s (x,y) -> s && x = y) true pairs
 
-let rec merge ps qs =
-    match (ps,qs) with
-    | ([], qs) -> qs
-    | (ps, []) -> ps
-    | (((p,_)::ps), ((_,q)::qs)) -> (p,q) :: merge ps qs
+let matching_preorder given_preorder node =
+    preorder node = given_preorder
 
-let merge_list es = List.fold merge [] es
+/// Returns whether two subtrees are designed in the same way
+let same_design (Node(_,subtrees_1)) (Node(_,subtrees_2)) =
+    let extract_design trees = (List.map (fun (Node((v,p),ts)) -> p) (flat_bfs trees))
+    let pairs = List.zip (List.collect extract_design subtrees_1) (List.collect extract_design subtrees_2)
+    matching_pairs pairs
 
-// find the least left offset of the extent l2.
-let rec fit (l1:Extent) (l2:Extent) =
-    match (l1,l2) with
-    | (((_,p)::ps), ((q,_)::qs)) ->
-        rmax (fit ps qs) (p-q+1.0)
-    | (_,_) ->
-        0.0
-
-let fit_list_left es =
-    let rec fit_list_inner acc es =
-        match es with
-        | (e::es) ->
-            let x = fit acc e;
-            x :: fit_list_inner (merge acc (move_extent (e,x))) es
-        | [] -> []
-    fit_list_inner [] es
-
-let fit_list_right es =
-    let rec fit_list_inner acc es =   
-        match es with
-        | (e::es) ->
-            let x = -(fit e acc);
-            x :: fit_list_inner (merge (move_extent (e,x)) acc) es
-        | [] -> []
-    List.rev (fit_list_inner [] (List.rev es))
+//let positioned_tree = design t
+//let preorder_filtered = 
+//let designs = List.map (same_design positioned_tree) preorder_filtered
+let all_equivalent_subtrees_match positioned_tree positioned_subtree =
+    let equivalent_trees = List.filter (matching_preorder (preorder positioned_subtree)) (flat_bfs positioned_tree)
+    let matching_designs = List.map (same_design positioned_subtree) equivalent_trees
+    List.reduce (&&) matching_designs
 
 
+/// TODO: EITHER IMPLEMENT OR REMOVE THIS
 /// Finds the least right positions of all subtrees with passed extents.
 /// Does exactly the opposite of fit_list_right
 let fit_list_right_good = List.rev << (List.map (fun x -> -x)) << fit_list_left << (List.map flip_extent) << List.rev
-
-let mean (x,y) = (x+y)/2.0
-/// The mean of right fitting and left fitting gives us a perfectly symmetric fit.
-let fit_list es = List.map mean (List.zip (fit_list_left es) (fit_list_right es))
-
-
-
-/// Returns a positioned tree where all nodes have a location
-let design tree =
-    let rec design_inner (Node(label, subtrees)) =
-        let (trees, extents) = List.unzip (List.map design_inner subtrees)
-        let positions = fit_list extents
-        let ptrees = List.map move_tree (List.zip trees positions)
-        let pextents = List.map move_extent (List.zip extents positions)
-        let resultextent = (0.0,0.0) :: merge_list pextents
-        let resulttree = Node((label, 0.0), ptrees)
-        (resulttree, resultextent)
-
-    design_inner tree |> fst
-
 
 
 
@@ -195,10 +225,17 @@ let main argv =
     let check_criterion3 test_tree =
         let ds = design test_tree
         let ref_ds = (test_tree |> reflect |> design |> reflectpos |> reflect )
-        let pairs = List.zip (ds |> flat_bfs) (ref_ds |> flat_bfs)
-        matching_tree_pairs pairs
+        let extract_design designed = designed |> flat_bfs |> List.map (fun (Node((v2,p2),ts)) -> (v2,p2))
+        let pairs = List.zip (ds |> extract_design) (ref_ds |> extract_design)
+        matching_pairs pairs
     Check.Quick check_criterion3
 
-
+    printfn "\n\nFsCheck Criterion 4 test:"
+    let check_criterion4 test_tree =
+        let designed = design test_tree
+        let equivs_that_match = List.map (all_equivalent_subtrees_match designed) (flat_bfs designed)
+        List.reduce (&&) equivs_that_match
+    
+    Check.Quick check_criterion4
     1
 
