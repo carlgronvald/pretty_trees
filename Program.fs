@@ -1,7 +1,7 @@
 ﻿// Learn more about F# at http://fsharp.org
 
 module Program
-
+open System.IO
 open System
 open FsCheck
 
@@ -313,5 +313,7 @@ let main argv =
     *)
     let tree_string = draw_tree absolut_tree 1
     printfn "%A" (draw_header+tree_string+draw_footer)
+    File.WriteAllText("./generated_file.ps", draw_header+tree_string+draw_footer)
+
     1
 
