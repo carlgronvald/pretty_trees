@@ -4,6 +4,10 @@ module Program
 
 open System
 open FsCheck
+<<<<<<< HEAD
+=======
+
+>>>>>>> 85b1b5adc7c8422c2899cba0613fc03b28fd5529
 
 type Tree<'a> = Node of 'a * Tree<'a> list
 let t = Node('a', [Node('b', [Node('c',[])]); Node('d',[]); Node('e',[Node('f',[])])])
@@ -167,10 +171,46 @@ let design tree =
 
 
 
+<<<<<<< HEAD
+=======
+let t = Node('a', [Node('b', [Node('c',[])]); Node('d',[]); Node('e',[Node('f',[])])])
+
+/// Converts a relatively positioned tree to an absolutely positioned tree 
+let absolute_positioned_tree postree =
+    let rec helper (Node((label, position), ts)) (translation:float) =
+        (label, position+translation) :: (List.collect (fun t -> helper t (translation+position) ) ts)
+    helper postree 0.0
+
+/// Do a breadth first search by level
+/// Returns a list of lists of nodes, where each list is one level.
+let level_bfs tree =
+    // The concept is to keep a list of nodes to be traversed both for the 
+    // current level and the next level. Then, when the current level is 
+    // empty, the current accumulator is appended to the total accumulator
+    // (The current accumulator keeps a list of labels, the total
+    // keeps a list of lists of labels)
+    let rec helper current_level next_level acc acc_old =
+        match current_level with
+        | [] -> //Case where the current level is empty, and we go on to the next level
+            match next_level with
+            | [] -> acc_old @ [acc]
+            | _ -> helper next_level [] [] (acc_old @ [acc])
+        | Node(x, ts)::rest -> //Case where the current level is not empty, so we continue in the current level
+            helper rest (next_level@ts) (acc @ [x]) acc_old
+    helper [tree] [] [] []
+
+let tt = Node('a', [Node('b', [Node('d', []); Node('e', []); Node('f', [])]); Node('c', [])])
+let b2 = level_bfs tt
+printf "level bfs %A" b2
+let rpt = design tt
+let apt = absolute_positioned_tree rpt
+printf "absolutely positioned tree %A" apt
+>>>>>>> 85b1b5adc7c8422c2899cba0613fc03b28fd5529
 [<EntryPoint>]
 let main argv =
     printfn ""
     let k = design t
+<<<<<<< HEAD
     //printfn "positioned tree: %A" k
 
     // FSCHECK: Criterion 1
@@ -192,6 +232,9 @@ let main argv =
         matching_tree_pairs pairs
     Check.Quick check_criterion3
 
+=======
+    printf "positioned tree: %A" k
+>>>>>>> 85b1b5adc7c8422c2899cba0613fc03b28fd5529
 
     1
 
