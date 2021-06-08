@@ -6,7 +6,10 @@ open System
 open FsCheck
 
 type Tree<'a> = Node of 'a * Tree<'a> list
-let t = Node('a', [Node('b', [Node('c',[])]); Node('d',[]); Node('e',[Node('f',[])])])
+//let t = Node('a', [Node('b', [Node('c',[])]); Node('d',[]); Node('e',[Node('f',[])])])
+let t = Node('a', [Node('b', [Node('c',[])]); Node('a', [Node('b', [Node('c',[])]); Node('d',[]); Node('e',[Node('f',[])])]); Node('e',[Node('f',[])])])
+
+//let t = Node('a', [Node('b', [Node('a', [Node('b', [Node('c',[])]); Node('d',[]); Node('e',[Node('f',[])])])]); Node('d',[]); Node('e',[Node('f',[])])])
 
 exception NodeNoChildren of string 
 
@@ -202,12 +205,82 @@ let all_equivalent_subtrees_match positioned_tree positioned_subtree =
 let fit_list_right_good = List.rev << (List.map (fun x -> -x)) << fit_list_left << (List.map flip_extent) << List.rev
 
 
+/// DRAWING THE POST-SCRIPT TREE
+
+let get_locations trees = List.map (fun (Node((label, location), subtrees)) -> location) trees 
+let get_extends subtrees = (subtrees |> get_locations |> List.max)-(subtrees |> get_locations |> List.min)
+
+let get_width subtrees = if subtrees = [] then 0.0 else get_extends subtrees
+
+let draw_footer = 
+    "stroke\nshowpage"
+
+
+let draw_header = 
+    "%!\n<</PageSize[1400 1000]/ImagingBBox null>> setpagedevice\n1 1 scale\n700 999 translate\nnewpath\n/Times-Roman findfont 10 scalefont setfont\n"
+
+
+let draw_horizontal_line position yoffset st = 
+    (string)((position*30.0)-((get_width st)*30.0)/2.0) + " " + string(yoffset+(-40))+" moveto \n"+  
+    (string)((position*30.0)+((get_width st)*30.0)/2.0) + " " + string(yoffset+(-40))+" lineto \n"
+                                                                        
+
+let draw_nodes_and_vertical_lines position yoffset label d =
+    if d > 1 then // non-root non-leave
+        // This block draws the label 
+        (string)(position*30.0)+" "+string(yoffset+(-10))+
+        " moveto \n("+(string)label+
+        ") dup stringwidth pop 2 div neg 0 rmoveto show\n"+
+
+        // This block draws the vertical line downwards
+        (string)(position*30.0)+" "+string(yoffset+(-15))+
+        " moveto\n"+(string)(position*30.0)+" "+(string)(yoffset+(-30))+
+        " lineto\n"+
+
+        // This block draws the vertical line upwards
+        (string)(position*30.0)+" "+string((yoffset+10)+(-10))+
+        " moveto\n"+(string)(position*30.0)+" "+(string)((yoffset+10)+(0))+
+        " lineto\n"
+    else 
+        // This block draws the label for the root 
+        (string)(position*30.0)+" "+string(yoffset+(-25))+
+        " moveto \n("+(string)label+
+        ") dup stringwidth pop 2 div neg 0 rmoveto show\n"+
+
+        // This block draws the vertical line downwards
+        (string)(position*30.0)+" "+string(yoffset+(-30))+
+        " moveto\n"+(string)(position*30.0)+" "+(string)(yoffset+(-40))+
+        " lineto\n"
+
+let draw_leaf position yoffset label = 
+    (string)(position*30.0)+" "+string(yoffset+(-10))+
+    " moveto \n("+(string)label+
+    ") dup stringwidth pop 2 div neg 0 rmoveto show\n"+
+
+    (string)(position*30.0)+" "+string((yoffset+10)+(-10))+
+    " moveto\n"+(string)(position*30.0)+" "+(string)((yoffset+10)+(20))+
+    " lineto\n"
+
+
+let rec draw_tree tree (depth:int) =
+    let yoffset = depth*(-50);
+    match tree with 
+    |  (Node((label, position:float),[]))  -> draw_leaf position yoffset label
+    |  (Node((label, position:float),st))  -> if (get_width st <> 0.0) then 
+                                                    (draw_horizontal_line position yoffset st)+
+                                                    (draw_nodes_and_vertical_lines position yoffset label depth)+
+                                                    (List.fold (fun s t -> s+(draw_tree t (depth+1))) "" st)
+                                                else 
+                                                    (draw_nodes_and_vertical_lines position yoffset label depth)+
+                                                    (List.fold (fun s t -> s+(draw_tree t (depth+1))) "" st) 
 
 
 [<EntryPoint>]
 let main argv =
     printfn ""
     let k = design t
+    let absolut_tree = absolute_positioned_tree k
+    (*
     //printfn "positioned tree: %A" k
 
     // FSCHECK: Criterion 1
@@ -237,5 +310,8 @@ let main argv =
         List.reduce (&&) equivs_that_match
     
     Check.Quick check_criterion4
+    *)
+    let tree_string = draw_tree absolut_tree 1
+    printfn "%A" (draw_header+tree_string+draw_footer)
     1
 
