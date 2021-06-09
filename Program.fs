@@ -1,10 +1,56 @@
 ﻿// Learn more about F# at http://fsharp.org
 
+
+
 module Program
 
 open System
 open FsCheck
 open System.IO
+
+module AST =
+
+    // Michael R. Hansen 04-06-2021
+    // This file is obtained by an adaption of the file MicroC/Absyn.fs by Peter Sestoft
+    //
+
+    type Exp =                            
+             | N  of int                   (* Integer constant            *)
+             | B of bool                   (* Boolean constant            *)
+             | Access of Access            (* x    or  ^p    or  a[e]     *)
+             | Addr of Access              (* &x   or  &p^   or  &a[e]    *)
+             | Apply of string * Exp list  (* Function application        *)
+
+    and Access = 
+              | AVar of string             (* Variable access        x    *) 
+              | AIndex of Access * Exp     (* Array indexing         a[e] *)
+              | ADeref of Exp              (* Pointer dereferencing  p^   *)
+
+    type Stm  =                            
+              | PrintLn of Exp               (* Print                          *) 
+              | Ass of Access * Exp          (* x:=e  or  p^:=e  or  a[e]:=e   *)
+              | Return of Exp option         (* Return from function           *)   
+              | Alt of GuardedCommand        (* Alternative statement          *) 
+              | Do of GuardedCommand         (* Repetition statement           *) 
+              | Block of Dec list * Stm list (* Block: grouping and scope      *)
+              | Call of string * Exp list    (* Procedure call                 *)
+               
+    and GuardedCommand = GC of (Exp * Stm list) list (* Guarded commands    *)
+
+    and Dec = 
+             | VarDec of Typ * string        (* Variable declaration               *)
+             | FunDec of Typ option * string * Dec list * Stm
+                                             (* Function and procedure declaration *) 
+
+    and Typ  = 
+             | ITyp                          (* Type int                    *)
+             | BTyp                          (* Type bool                   *)
+             | ATyp of Typ * int option      (* Type array                  *)
+             | PTyp of Typ                   (* Type pointer                *)
+             | FTyp of Typ list * Typ option (* Type function and procedure *)
+
+    type Program = P of Dec list * Stm list   (* Program                 *)
+
 
 type Tree<'a> = Node of 'a * Tree<'a> list
 exception NodeNoChildren of string 
@@ -273,7 +319,7 @@ let draw_node position yoffset label d =
 
     if d > 1 then // non-root non-leaf
         List.concat(label_list_draw_ps_not_root label_list )@
-            (draw_vertical_line position yoffset (2.5 - 5.0 * (float) label_list.Length) -30.0) @
+            (draw_vertical_line position yoffset (2.5 - 5.0 * (float) label_list.Length) -40.0) @
             (draw_vertical_line position yoffset 5.0 10.0)
     else 
         List.concat(label_list_draw_ps_root label_list )@
@@ -285,7 +331,7 @@ let draw_leaf position yoffset label =
         (draw_node_label position yoffset label (-5.0 * (float) i))) label_list
     
     List.concat(label_list_draw_ps label_list )@
-    (draw_vertical_line position yoffset 5.0 30.0)
+    (draw_vertical_line position yoffset 5.0 10.0)
 
 // Generates a large tree for testing the timing of the different implementations
 let rec generate_test_tree n =
@@ -313,8 +359,106 @@ let treeToList tree =
     draw_header @ treeToList_inner tree 1 @ draw_footer
 
 let TreeToPsSlow    = treeToList >> List.fold (fun a b -> a+b) "" 
-//let TreeToPsFast    = treeToList >> String.concat ""
+let TreeToPsFast    = treeToList >> String.concat ""
  
+open AST
+
+/// Parses a type in the AST
+let rec parse_type (typ:Typ) =
+    match typ with
+    | ITyp -> Node("Int", [])
+    | BTyp -> Node("Bool",[])                (* Type bool                   *)
+    | ATyp(typ:Typ, None) -> Node("Array", [parse_type typ])      (* Type array                  *)
+    | ATyp(typ:Typ, Some(len)) -> Node("Array", [(parse_type typ); Node("length "+ (string)len, [])]);
+    | PTyp(typ:Typ) -> Node("Pointer", [parse_type typ])                   (* Type pointer                *)
+    | FTyp(types:Typ list, output) ->
+        let onode = match output with
+                    |Some(output) -> [Node("Output",[parse_type output])]
+                    |None -> []
+        Node("Function", onode @ (List.map parse_type types) ) (* Type function and procedure *)
+
+/// Parses a variable, array, or pointer access element in the AST
+let rec parse_access access =
+    match access with
+    | AVar(name) -> Node("AVar", [Node("Var '" + name + "'", [])])              (* Variable access        x    *) 
+    | AIndex(acc, exp) -> Node("AIndex", [parse_access acc;parse_expression exp])     (* Array indexing         a[e] *)
+    | ADeref(exp) -> Node("ADeref", [parse_expression exp])              (* Pointer dereferencing  p^   *)
+
+/// Parses an expression in the AST
+and parse_expression expression = 
+    match expression with
+    | N(i) -> Node("Int "+(string)i, [])                   (* Integer constant            *)
+    | B(b) -> Node("Bool "+(string)b, [])                    (* Boolean constant            *)
+    | Access(access) -> parse_access access           (* x    or  ^p    or  a[e]     *)
+    | Addr(access) -> Node("Addr", [parse_access access])              (* &x   or  &p^   or  &a[e]    *)
+    | Apply(function_name, exps) -> Node("Apply", Node(function_name, [])::(List.map parse_expression exps))  (* Function application        *)
+
+/// Parses a statement in the AST
+let rec parse_statement statement =
+    match statement with
+    | PrintLn(exp) -> Node("PrintLn", [parse_expression exp])               (* Print                          *) 
+    | Ass(access, exp) -> Node("Ass", [parse_access access; parse_expression exp])          (* x:=e  or  p^:=e  or  a[e]:=e   *)
+    | Return(exp) -> 
+        let rnode = match exp with
+                    | Some(exp) -> [parse_expression(exp)]
+                    | None -> []
+        Node("Return", rnode)        (* Return from function           *)
+    | Alt(gc) -> Node("Alt", [parse_guarded_command gc])(* Alternative statement          *)
+    | Do(gc) -> Node("Do", [parse_guarded_command gc])         (* Repetition statement           *)
+    | Block(declarations, statements) -> (* Block: grouping and scope      *)
+        Node("Block", (List.map parse_declaration declarations)@(List.map parse_statement statements))
+    | Call(name, expressions) -> (* Procedure call                 *)
+        Node("Call", Node(name, [])::(List.map parse_expression expressions)) 
+
+/// Parses a GC in the AST
+and parse_guarded_command (GC( cmdlist)) =
+    Node("GC", List.map (fun (exp,stmts) -> Node("If", [(parse_expression exp);(Node("Then", List.map parse_statement stmts))])) cmdlist)
+
+/// Parses a declaration of either a function or a variable in the AST
+and parse_declaration (declaration:Dec) =
+    match declaration with
+    | (VarDec(typ, name)) ->
+        (Node("VarDec", [Node(name, []);parse_type typ]))
+    | FunDec(typ, name, declarations, statement) ->
+        let tnode = match typ with
+                    | Some(typ) -> [parse_type(typ)]
+                    | None -> []
+        (Node("FunDec", tnode @ [Node(name,[])] @ (List.map parse_declaration declarations) @ [parse_statement statement]))
+
+/// Converts a Program to a Tree<String> so that it is ready for rendering.
+let toGeneralTree (P(declarations, statements)) =
+    let declarations = List.map parse_declaration declarations
+    let statements = List.map parse_statement statements
+    Node("Program", declarations@statements)
+
+let it : Program =
+  P ([VarDec (ITyp,"x")],
+     [Ass (AVar "x",N 1);
+      Do
+        (GC
+           [(Apply ("=",[Access (AVar "x"); N 1]),
+             [PrintLn (Access (AVar "x"));
+              Ass (AVar "x",Apply ("+",[Access (AVar "x"); N 1]))]);
+            (Apply ("=",[Access (AVar "x"); N 2]),
+             [PrintLn (Access (AVar "x"));
+              Ass (AVar "x",Apply ("+",[Access (AVar "x"); N 1]))]);
+            (Apply ("=",[Access (AVar "x"); N 3]),
+             [PrintLn (Access (AVar "x"));
+              Ass (AVar "x",Apply ("+",[Access (AVar "x"); N 1]))])]);
+      PrintLn (Access (AVar "x"))])
+
+let tree = toGeneralTree it
+
+//printfn "%A" (toGeneralTree it)
+TreeToPsFast (absolute_positioned_tree (design tree)) |> ignore
+open System.IO
+let pos_tree_to_file path postree =
+    File.WriteAllText (path, TreeToPsSlow (absolute_positioned_tree postree)) 
+
+let tree_to_file path tree =
+    pos_tree_to_file path (design tree)
+
+
 [<EntryPoint>]
 let main argv =
     let t = Node("1", [Node("a", [Node("sdadqwqeqweqwe",[])]); Node("sadasdasdasds", [Node("b", [Node("sadsadasdsads",[])]); Node("sssssssssssssssssss",[]); Node("eeeeeeeeeeeeeeeeee",[Node("ffffffffffffffffff",[])])]); Node("dsaoooooooooooooooo",[Node("kkkkkkkkkkkkkkkkkk",[])])])
@@ -326,6 +470,8 @@ let main argv =
     // File.WriteAllText("./generated_file.ps", tree_string)
     printfn "%A" tree_string
 
+    tree_to_file "../../../../output.ps" tree
+    printfn "Output a tree!"
     
     (*
     // FSCHECK: Criterion 1

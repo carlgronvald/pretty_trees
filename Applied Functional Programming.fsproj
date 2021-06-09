@@ -5,6 +5,7 @@
     <RootNamespace>Applied_Functional_Programming</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="AST.fs" />
     <Compile Include="Program.fs" />
     <!-- <Compile Include="SplitLabel.fs" /> -->
   </ItemGroup>
