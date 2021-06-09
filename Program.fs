@@ -225,13 +225,25 @@ let draw_horizontal_line position yoffset st =
     [(string)((position*30.0)-((get_width st)*30.0)/2.0) ; " " ; string(yoffset+(-40));" moveto \n";  
     (string)((position*30.0)+((get_width st)*30.0)/2.0) ; " " ; string(yoffset+(-40));" lineto \n"]
                                                                         
+let draw_node_label position yoffset label =
+    [(string)(position*30.0);" ";string(yoffset+(-10));
+    " moveto \n(";(string)label;
+    ") dup stringwidth pop 2 div neg 0 rmoveto show\n";]
+
+let draw_upwards_line position yoffset label =
+    [(string)(position*30.0);" ";string((yoffset+10)+(-10));
+    " moveto\n";(string)(position*30.0);" ";(string)((yoffset+10)+(0));
+    " lineto\n"]
+
 
 let draw_nodes_and_vertical_lines position yoffset label d =
     if d > 1 then // non-root non-leave
         // This block draws the label 
-        [(string)(position*30.0);" ";string(yoffset+(-10));
-        " moveto \n(";(string)label;
-        ") dup stringwidth pop 2 div neg 0 rmoveto show\n";
+        //[(string)(position*30.0);" ";string(yoffset+(-10));
+        //" moveto \n(";(string)label;
+        //") dup stringwidth pop 2 div neg 0 rmoveto show\n";
+        (draw_node_label position yoffset label)@
+        (draw_upwards_line position yoffset label)@
 
         // This block draws the vertical line downwards
         (string)(position*30.0);" ";string(yoffset+(-15));
@@ -239,9 +251,9 @@ let draw_nodes_and_vertical_lines position yoffset label d =
         " lineto\n";
 
         // This block draws the vertical line upwards
-        (string)(position*30.0);" ";string((yoffset+10)+(-10));
-        " moveto\n";(string)(position*30.0);" ";(string)((yoffset+10)+(0));
-        " lineto\n"]
+        //(string)(position*30.0);" ";string((yoffset+10)+(-10));
+        //" moveto\n";(string)(position*30.0);" ";(string)((yoffset+10)+(0));
+        //" lineto\n"]
     else 
         // This block draws the label for the root 
         [(string)(position*30.0);" ";string(yoffset+(-25));
