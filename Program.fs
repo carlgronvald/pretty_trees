@@ -131,12 +131,6 @@ let extractLocations trees = List.map (fun (Node((label, location), subtrees)) -
 
 let extractMean subtrees = ((subtrees |> extractLocations |> List.max)+(subtrees |> extractLocations |> List.min))/2.0
 
-let list_mean (xs : float list) : float =
-    (List.fold (fun acc n -> acc + n) 0.0 xs) / (float (xs.Length))
-
-let get_node_pos (Node((_,pos),_)) = pos
-
-
 let mean_pos_of_children abs_postree =
     match abs_postree with
     | (Node((v,abs_pos),[])) -> raise (NodeNoChildren ("This node has no children"))
