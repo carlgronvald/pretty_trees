@@ -1,13 +1,14 @@
 ﻿// Learn more about F# at http://fsharp.org
 
 module Program
-open System.IO
+
 open System
 open FsCheck
-
+open System.IO
 
 type Tree<'a> = Node of 'a * Tree<'a> list
 //let t = Node('a', [Node('b', [Node('c',[])]); Node('d',[]); Node('e',[Node('f',[])])])
+// let t = Node('a', [Node('b', [Node('c',[])]); Node('a', [Node('b', [Node('c',[])]); Node('d',[]); Node('e',[Node('f',[])])]); Node('e',[Node('f',[])])])
 
 //let t = Node('a', [Node('b', [Node('a', [Node('b', [Node('c',[])]); Node('d',[]); Node('e',[Node('f',[])])])]); Node('d',[]); Node('e',[Node('f',[])])])
 
@@ -131,12 +132,6 @@ let extractLocations trees = List.map (fun (Node((label, location), subtrees)) -
 
 let extractMean subtrees = ((subtrees |> extractLocations |> List.max)+(subtrees |> extractLocations |> List.min))/2.0
 
-let list_mean (xs : float list) : float =
-    (List.fold (fun acc n -> acc + n) 0.0 xs) / (float (xs.Length))
-
-let get_node_pos (Node((_,pos),_)) = pos
-
-
 let mean_pos_of_children abs_postree =
     match abs_postree with
     | (Node((v,abs_pos),[])) -> raise (NodeNoChildren ("This node has no children"))
@@ -159,6 +154,8 @@ let rec reflect (Node(v, subtrees)) =
 let rec reflectpos (Node((v,x : float), subtrees)) =
     Node((v, -x), List.map reflectpos subtrees)
 
+    
+// Criterion 4 functions
 let preorder tree =
     let rec helper depth subtree =
         match subtree with
@@ -176,13 +173,13 @@ let flat_bfs tree =
             helper (rest@ts) (Node(x,ts)::acc)
     helper [tree] []
 
-
-
-
 let matching_pairs pairs = List.fold (fun s (x,y) -> s && x = y) true pairs
 
 let matching_preorder given_preorder node =
     preorder node = given_preorder
+
+
+
 
 /// Returns whether two subtrees are designed in the same way
 let same_design (Node(_,subtrees_1)) (Node(_,subtrees_2)) =
@@ -199,11 +196,14 @@ let all_equivalent_subtrees_match positioned_tree positioned_subtree =
     List.reduce (&&) matching_designs
 
 
+
+
+
+
 /// TODO: EITHER IMPLEMENT OR REMOVE THIS
 /// Finds the least right positions of all subtrees with passed extents.
 /// Does exactly the opposite of fit_list_right
 let fit_list_right_good = List.rev << (List.map (fun x -> -x)) << fit_list_left << (List.map flip_extent) << List.rev
-
 
 /// DRAWING THE POST-SCRIPT TREE
 
@@ -213,46 +213,41 @@ let get_extends subtrees = (subtrees |> get_locations |> List.max)-(subtrees |> 
 let get_width subtrees = if subtrees = [] then 0.0 else get_extends subtrees
 
 let draw_footer = 
-    "stroke\nshowpage"
+    ["stroke\nshowpage"]
 
 
 let draw_header = 
-    "%!\n<</PageSize[1400 1000]/ImagingBBox null>> setpagedevice\n1 1 scale\n700 999 translate\nnewpath\n/Times-Roman findfont 5 scalefont setfont\n"
+    ["%!\n<</PageSize[1400 1000]/ImagingBBox null>> setpagedevice\n1 1 scale\n700 999 translate\nnewpath\n/Times-Roman findfont 5 scalefont setfont\n"]
 
-
-let draw_horizontal_line position yoffset st = 
-    (string)((position*30.0)-((get_width st)*30.0)/2.0) + " " + string(yoffset+(-40))+" moveto \n"+  
-    (string)((position*30.0)+((get_width st)*30.0)/2.0) + " " + string(yoffset+(-40))+" lineto \n"
-                                                                        
 
 (*======================LABEL SPLITTING BEGIN======================================*)
-let calculateLines (str:String) : int = int(str.Length/8)
+let calculateLines (s) : int = int(((string)s).Length/8)
 
 // split according to 
 let string2Words s =
     let split s = 
-        let rec scan (s:string) i =
-            if s.Length = 0 then []
-            elif (i+1)%8 = 0 then [s.[..i]; s.[i+1..]]
-            elif i = (s.Length - 1) then [s]
-            else scan s (i+1)
+        let rec scan s i =
+            if ((string)s).Length = 0 then []
+            elif (i+1)%8 = 0 then [((string)s).[..i]; ((string)s).[i+1..]]
+            elif i = (((string)s).Length - 1) then [((string)s)]
+            else scan ((string)s) (i+1)
         scan s 0
     let rec fold acc s =
-        match split s with
+        match split ((string)s) with
         | [x] -> acc @ [x]
         | [head;tail] -> fold (acc @ [head]) tail
         | _ -> acc
-    fold [] s
+    fold [] ((string)s)
 
 // Split according to the space  
 let string2WordsSpace s =
     let split s =
-        let rec scan (s:string) i =
-            if s.Length = 0 then []
-            elif s.[i] = ' ' && i = 0 then scan s.[i+1..] 0
-            elif s.[i] = ' ' then [s.[..i-1]; s.[i+1..]]
-            elif i = (s.Length - 1) then [s]
-            else scan s (i+1)
+        let rec scan (s) i =
+            if ((string)s).Length = 0 then []
+            elif ((string)s).[i] = ' ' && i = 0 then scan ((string)s).[i+1..] 0
+            elif ((string)s).[i] = ' ' then [((string)s).[..i-1]; ((string)s).[i+1..]]
+            elif i = (((string)s).Length - 1) then [s]
+            else scan ((string)s) (i+1)
         scan s 0
     let rec fold acc s =
         match split s with
@@ -267,90 +262,101 @@ let addNextLineToString (list:list<String>):String =
 (*======================LABEL SPLITTING END======================================*)
 
 
-let draw_nodes_and_vertical_line_long_label position yoffset label d =
-    // let rec draw_label_per_line origin_label = 
+
+//Functions for drawing the tree:
+
+let draw_horizontal_line position yoffset st = 
+    [(string)((position*30.0)-((get_width st)*30.0)/2.0) ; " " ; string(yoffset+(-40));" moveto \n";  
+    (string)((position*30.0)+((get_width st)*30.0)/2.0) ; " " ; string(yoffset+(-40));" lineto \n"]
+                                                                        
+
+let draw_nodes_and_vertical_lines position yoffset label d =
     let label_list = string2Words label
     let label_list_draw_ps_not_root label_list = List.mapi (fun i  x ->          
         // This block draws the label 
-        (string)(position*30.0)+" "+string(yoffset+(-5*i))+
-        " moveto \n("+x+
-        ") dup stringwidth pop 2 div neg 0 rmoveto show\n") label_list  
+        [(string)(position*30.0);" ";string(yoffset+(-5*i));
+        " moveto \n(";x;
+        ") dup stringwidth pop 2 div neg 0 rmoveto show\n"]) label_list  
     
     let label_list_draw_ps_root label_list =List.mapi (fun i x ->          // This block draws the label 
-        (string)(position*30.0)+" "+string(yoffset+(-15-5*i))+
-        " moveto \n("+x+
-        ") dup stringwidth pop 2 div neg 0 rmoveto show\n") label_list
-      
+        [(string)(position*30.0);" ";string(yoffset+(-15-5*i));
+        " moveto \n(";x;
+        ") dup stringwidth pop 2 div neg 0 rmoveto show\n"]) label_list
+    
+
     if d > 1 then // non-root non-leave
         // This block draws the label 
-        // (string)(position*30.0)+" "+string(yoffset+(-10))+
-        // " moveto \n("+(addNextLineToString (string2WordsSpace label))+
-        // ") dup stringwidth pop 2 div neg 0 rmoveto show\n"+
-        addNextLineToString (label_list_draw_ps_not_root label_list)+
-        
-
+        List.concat(label_list_draw_ps_not_root label_list )@
+        [
         // This block draws the vertical line downwards
-        (string)(position*30.0)+" "+string(yoffset+(-5*label_list.Length))+
-        " moveto\n"+(string)(position*30.0)+" "+(string)(yoffset+(-30))+
-        " lineto\n"+
+        (string)(position*30.0);" ";string(yoffset+(-5*label_list.Length));
+        " moveto\n";(string)(position*30.0);" ";(string)(yoffset+(-30));
+        " lineto\n";
 
         // This block draws the vertical line upwards
-        (string)(position*30.0)+" "+string((yoffset+10)+(-5))+
-        " moveto\n"+(string)(position*30.0)+" "+(string)((yoffset+10)+(0))+
-        " lineto\n"
+        (string)(position*30.0);" ";string((yoffset+10)+(-5));
+        " moveto\n";(string)(position*30.0);" ";(string)((yoffset+10)+(0));
+        " lineto\n"]
     else 
         // This block draws the label for the root 
-        // (string)(position*30.0)+" "+string(yoffset+(-25))+
-        // " moveto \n("+(addNextLineToString (string2WordsSpace label))+
-        // ") dup stringwidth pop 2 div neg 0 rmoveto show\n"+
-        addNextLineToString (label_list_draw_ps_root label_list)+
-
+        List.concat(label_list_draw_ps_root label_list )@
+        [
         // This block draws the vertical line downwards
-        (string)(position*30.0)+" "+string(yoffset-8*(label_list.Length))+
-        " moveto\n"+(string)(position*30.0)+" "+(string)(yoffset+(-40))+
-        " lineto\n"
+        (string)(position*30.0);" ";string(yoffset-8*(label_list.Length));
+        " moveto\n";(string)(position*30.0);" ";(string)(yoffset+(-40));
+        " lineto\n"]
 
-
-
-let draw_leaf_long_label position yoffset label = 
+let draw_leaf position yoffset label =
     let label_list = string2Words label
     let label_list_draw_ps label_list = List.mapi (fun i x ->          // This block draws the label 
-        (string)(position*30.0)+" "+string(yoffset+(-5*i))+" moveto \n("+x+
-        ") dup stringwidth pop 2 div neg 0 rmoveto show\n") label_list  
+        [(string)(position*30.0);" ";string(yoffset+(-5*i))+" moveto \n(";x;
+        ") dup stringwidth pop 2 div neg 0 rmoveto show\n"]) label_list 
+    
+    List.concat(label_list_draw_ps label_list )@
+    [(string)(position*30.0);" ";string((yoffset+10)+(-5));
+    " moveto\n";(string)(position*30.0);" ";(string)((yoffset+10)+(20));
+    " lineto\n"]
 
-    // (string)(position*30.0)+" "+string(yoffset+(-10))+
-    // " moveto \n("+(string)label+
-    // ") dup stringwidth pop 2 div neg 0 rmoveto show\n"+
-    addNextLineToString (label_list_draw_ps label_list)+
+// Generates a large tree for testing the timing of the different implementations
+let rec generate_test_tree n =
+    match n with
+    | 0 -> Node(0, [])
+    | _ -> Node(0, [generate_test_tree (n-1);generate_test_tree (n-1)])
+
+//Converting a positioned tree to a list of strings
+let treeToList tree =
+    // Inner function that recu rsively draws the tree,
+    // the depth argument is our way of keeping track 
+    // of the depth of the current node in the tree
+    let rec treeToList_inner tree (depth:int) =
+        let yoffset = depth*(-50);
+        match tree with 
+        |  (Node((label, position:float),[]))  -> draw_leaf position yoffset label
+        |  (Node((label, position:float),st))  -> if (get_width st <> 0.0) then 
+                                                        (draw_horizontal_line position yoffset st)@
+                                                        (draw_nodes_and_vertical_lines position yoffset label depth)
+                                                        @(List.fold (fun s t -> s@(treeToList_inner t (depth+1))) [] st)
+                                                    else 
+                                                        (draw_nodes_and_vertical_lines position yoffset label depth)
+                                                        @(List.fold (fun s t -> s@(treeToList_inner t (depth+1))) [] st) 
+    //"Glueing" the ps header and the footer to the generated ps code    
+    draw_header @ treeToList_inner tree 1 @ draw_footer
+
+let TreeToPsSlow    = treeToList >> List.fold (fun a b -> a+b) "" 
+let TreeToPsFast    = treeToList >> String.concat ""
  
-    (string)(position*30.0)+" "+string((yoffset+10)+(-5))+
-    " moveto\n"+(string)(position*30.0)+" "+(string)((yoffset+10)+(20))+
-    " lineto\n"
-
-
-let rec draw_tree_long_label tree (depth:int) =
-    let yoffset = depth*(-50);
-    match tree with 
-    |  (Node((label, position:float),[]))  -> draw_leaf_long_label position yoffset label
-    |  (Node((label, position:float),st))  -> if (get_width st <> 0.0) then 
-                                                    (draw_horizontal_line position yoffset st)+
-                                                    (draw_nodes_and_vertical_line_long_label position yoffset label depth)+
-                                                    (List.fold (fun s t -> s+(draw_tree_long_label t (depth+1))) "" st)
-                                                else 
-                                                    (draw_nodes_and_vertical_line_long_label position yoffset label depth)+
-                                                    (List.fold (fun s t -> s+(draw_tree_long_label t (depth+1))) "" st) 
-
-
-
-
 [<EntryPoint>]
 let main argv =
-    let t = Node("abcdefghigkhjlkjsjsjsjadsjdasa", [Node("a", [Node("sdadqwqeqweqwe",[])]); Node("sadasdasdasds", [Node("b", [Node("sadsadasdsads",[])]); Node("sssssssssssssssssss",[]); Node("eeeeeeeeeeeeeeeeee",[Node("ffffffffffffffffff",[])])]); Node("dsaoooooooooooooooo",[Node("kkkkkkkkkkkkkkkkkk",[])])])
-    printfn ""
-    let k = design t
-    let absolut_tree = absolute_positioned_tree k
+    // let t = Node("abcdefghigkhjlkjsjsjsjadsjdasa", [Node("a", [Node("sdadqwqeqweqwe",[])]); Node("sadasdasdasds", [Node("b", [Node("sadsadasdsads",[])]); Node("sssssssssssssssssss",[]); Node("eeeeeeeeeeeeeeeeee",[Node("ffffffffffffffffff",[])])]); Node("dsaoooooooooooooooo",[Node("kkkkkkkkkkkkkkkkkk",[])])])
+    // printfn ""
+    // let k = design t
+    // let absolut_tree = absolute_positioned_tree k
+
+    // let tree_string = TreeToPsSlow absolut_tree
+    // // printfn "%A" (draw_header+tree_string+draw_footer)
+    // File.WriteAllText("./generated_file.ps", tree_string)
     (*
-    //printfn "positioned tree: %A" k
+    //printfn "positioned tree: %A" k'
 
     // FSCHECK: Criterion 1
     printfn "\n\nFsCheck Criterion 1 test:"
@@ -380,9 +386,25 @@ let main argv =
     
     Check.Quick check_criterion4
     *)
-    let tree_string = draw_tree_long_label absolut_tree 1
-    // printfn "%A" (draw_header+tree_string+draw_footer)
-    File.WriteAllText("./generated_file.ps", draw_header+tree_string+draw_footer)
+    let test_tree           = generate_test_tree 10
+    let designed_test_tree  = design test_tree
+    let designed_absolute_test_tree = absolute_positioned_tree designed_test_tree
 
+    let stopWatch           = System.Diagnostics.Stopwatch.StartNew()
+    let tree_string         = TreeToPsSlow designed_absolute_test_tree
+    printfn "Slow time %f" stopWatch.Elapsed.TotalMilliseconds
+    stopWatch.Stop()
+
+    let stopWatch_1           = System.Diagnostics.Stopwatch.StartNew()
+    let tree_string_fast      = TreeToPsFast designed_absolute_test_tree
+    stopWatch_1.Stop()
+    printfn "Fast time %f" stopWatch_1.Elapsed.TotalMilliseconds
+
+    
+    //printfn "%A" tree_string
+
+    //printfn "\n\n"
+
+    //printfn "%A" tree_string_fast
     1
 
