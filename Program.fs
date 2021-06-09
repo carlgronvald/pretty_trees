@@ -153,6 +153,8 @@ let rec reflect (Node(v, subtrees)) =
 let rec reflectpos (Node((v,x : float), subtrees)) =
     Node((v, -x), List.map reflectpos subtrees)
 
+    
+// Criterion 4 functions
 let preorder tree =
     let rec helper depth subtree =
         match subtree with
@@ -170,13 +172,13 @@ let flat_bfs tree =
             helper (rest@ts) (Node(x,ts)::acc)
     helper [tree] []
 
-
-
-// Criterion 4 functions
 let matching_pairs pairs = List.fold (fun s (x,y) -> s && x = y) true pairs
 
 let matching_preorder given_preorder node =
     preorder node = given_preorder
+
+
+
 
 /// Returns whether two subtrees are designed in the same way
 let same_design (Node(_,subtrees_1)) (Node(_,subtrees_2)) =
