@@ -131,12 +131,6 @@ let extractLocations trees = List.map (fun (Node((label, location), subtrees)) -
 
 let extractMean subtrees = ((subtrees |> extractLocations |> List.max)+(subtrees |> extractLocations |> List.min))/2.0
 
-let list_mean (xs : float list) : float =
-    (List.fold (fun acc n -> acc + n) 0.0 xs) / (float (xs.Length))
-
-let get_node_pos (Node((_,pos),_)) = pos
-
-
 let mean_pos_of_children abs_postree =
     match abs_postree with
     | (Node((v,abs_pos),[])) -> raise (NodeNoChildren ("This node has no children"))
@@ -159,6 +153,8 @@ let rec reflect (Node(v, subtrees)) =
 let rec reflectpos (Node((v,x : float), subtrees)) =
     Node((v, -x), List.map reflectpos subtrees)
 
+    
+// Criterion 4 functions
 let preorder tree =
     let rec helper depth subtree =
         match subtree with
@@ -176,11 +172,17 @@ let flat_bfs tree =
             helper (rest@ts) (Node(x,ts)::acc)
     helper [tree] []
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> ec20dc80acc62427ff2744ff951f6837f37f87f3
 let matching_pairs pairs = List.fold (fun s (x,y) -> s && x = y) true pairs
 
 let matching_preorder given_preorder node =
     preorder node = given_preorder
+
+
+
 
 /// Returns whether two subtrees are designed in the same way
 let same_design (Node(_,subtrees_1)) (Node(_,subtrees_2)) =
@@ -196,6 +198,14 @@ let all_equivalent_subtrees_match positioned_tree positioned_subtree =
     let matching_designs = List.map (same_design positioned_subtree) equivalent_trees
     List.reduce (&&) matching_designs
 
+<<<<<<< HEAD
+=======
+
+
+
+
+
+>>>>>>> ec20dc80acc62427ff2744ff951f6837f37f87f3
 /// TODO: EITHER IMPLEMENT OR REMOVE THIS
 /// Finds the least right positions of all subtrees with passed extents.
 /// Does exactly the opposite of fit_list_right
