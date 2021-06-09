@@ -242,13 +242,12 @@ let draw_nodes_and_vertical_lines position yoffset label d =
         //[(string)(position*30.0);" ";string(yoffset+(-10));
         //" moveto \n(";(string)label;
         //") dup stringwidth pop 2 div neg 0 rmoveto show\n";
-        (draw_node_label position yoffset label)@
-        (draw_upwards_line position yoffset label)@
-
+        (draw_node_label position yoffset label) @
+            (draw_upwards_line position yoffset label)@
         // This block draws the vertical line downwards
-        (string)(position*30.0);" ";string(yoffset+(-15));
+            [(string)(position*30.0);" ";string(yoffset+(-15));
         " moveto\n";(string)(position*30.0);" ";(string)(yoffset+(-30));
-        " lineto\n";
+        " lineto\n"]
 
         // This block draws the vertical line upwards
         //(string)(position*30.0);" ";string((yoffset+10)+(-10));
@@ -307,6 +306,9 @@ let main argv =
     printfn ""
     let k = design t
     let absolut_tree = absolute_positioned_tree k
+    let test = TreeToPsFast absolut_tree
+    let test2 = TreeToPsSlow absolut_tree
+    printfn "%A" test 
     (*
     //printfn "positioned tree: %A" k'
 
@@ -337,7 +339,6 @@ let main argv =
         List.reduce (&&) equivs_that_match
     
     Check.Quick check_criterion4
-    *)
     let test_tree           = generate_test_tree 10
     let designed_test_tree  = design test_tree
     let designed_absolute_test_tree = absolute_positioned_tree designed_test_tree
@@ -351,6 +352,7 @@ let main argv =
     let tree_string_fast      = TreeToPsFast designed_absolute_test_tree
     stopWatch_1.Stop()
     printfn "Fast time %f" stopWatch_1.Elapsed.TotalMilliseconds
+    *)
 
     
     //printfn "%A" tree_string
