@@ -256,8 +256,8 @@ let string2WordsSpace s =
         | _ -> acc
     fold [] s
 
-let addNextLineToString (list:list<String>):String =
-    String.concat "\n" list
+// let addNextLineToString (list:list<'a>) =
+//     String.concat "\n" list
     
 (*======================LABEL SPLITTING END======================================*)
 
@@ -266,20 +266,20 @@ let addNextLineToString (list:list<String>):String =
 //Functions for drawing the tree:
 
 let draw_horizontal_line position yoffset st = 
-    [(string)((position*30.0)-((get_width st)*30.0)/2.0) ; " " ; string(yoffset+(-40));" moveto \n";  
-    (string)((position*30.0)+((get_width st)*30.0)/2.0) ; " " ; string(yoffset+(-40));" lineto \n"]
+    [(string)((position*30.0)-((get_width st)*30.0)/2.0) ; " " ; string(yoffset+(-40.0));" moveto \n";  
+    (string)((position*30.0)+((get_width st)*30.0)/2.0) ; " " ; string(yoffset+(-40.0));" lineto \n"]
                                                                         
 
 let draw_nodes_and_vertical_lines position yoffset label d =
     let label_list = string2Words label
     let label_list_draw_ps_not_root label_list = List.mapi (fun i  x ->          
         // This block draws the label 
-        [(string)(position*30.0);" ";string(yoffset+(-5*i));
+        [(string)(position*30.0);" ";string(yoffset+(-5.0*(float)i));
         " moveto \n(";x;
         ") dup stringwidth pop 2 div neg 0 rmoveto show\n"]) label_list  
     
     let label_list_draw_ps_root label_list =List.mapi (fun i x ->          // This block draws the label 
-        [(string)(position*30.0);" ";string(yoffset+(-15-5*i));
+        [(string)(position*30.0);" ";string(yoffset+(-15.0-5.0*(float)i));
         " moveto \n(";x;
         ") dup stringwidth pop 2 div neg 0 rmoveto show\n"]) label_list
     
@@ -289,32 +289,32 @@ let draw_nodes_and_vertical_lines position yoffset label d =
         List.concat(label_list_draw_ps_not_root label_list )@
         [
         // This block draws the vertical line downwards
-        (string)(position*30.0);" ";string(yoffset+(-5*label_list.Length));
-        " moveto\n";(string)(position*30.0);" ";(string)(yoffset+(-30));
+        (string)(position*30.0);" ";string(yoffset+(-5.0*(float)label_list.Length));
+        " moveto\n";(string)(position*30.0);" ";(string)(yoffset+(-30.0));
         " lineto\n";
 
         // This block draws the vertical line upwards
-        (string)(position*30.0);" ";string((yoffset+10)+(-5));
-        " moveto\n";(string)(position*30.0);" ";(string)((yoffset+10)+(0));
+        (string)(position*30.0);" ";string((yoffset+10.0)+(-5.0));
+        " moveto\n";(string)(position*30.0);" ";(string)((yoffset+10.0)+(0.0));
         " lineto\n"]
     else 
         // This block draws the label for the root 
         List.concat(label_list_draw_ps_root label_list )@
         [
         // This block draws the vertical line downwards
-        (string)(position*30.0);" ";string(yoffset-8*(label_list.Length));
-        " moveto\n";(string)(position*30.0);" ";(string)(yoffset+(-40));
+        (string)(position*30.0);" ";string(yoffset-8.0*(float)(label_list.Length));
+        " moveto\n";(string)(position*30.0);" ";(string)(yoffset+(-40.0));
         " lineto\n"]
 
 let draw_leaf position yoffset label =
     let label_list = string2Words label
     let label_list_draw_ps label_list = List.mapi (fun i x ->          // This block draws the label 
-        [(string)(position*30.0);" ";string(yoffset+(-5*i))+" moveto \n(";x;
+        [(string)(position*30.0);" ";string(yoffset+(-5.0*(float)i))+" moveto \n(";x;
         ") dup stringwidth pop 2 div neg 0 rmoveto show\n"]) label_list 
     
     List.concat(label_list_draw_ps label_list )@
-    [(string)(position*30.0);" ";string((yoffset+10)+(-5));
-    " moveto\n";(string)(position*30.0);" ";(string)((yoffset+10)+(20));
+    [(string)(position*30.0);" ";string((yoffset+10.0)+(-5.0));
+    " moveto\n";(string)(position*30.0);" ";(string)((yoffset+10.0)+(20.0));
     " lineto\n"]
 
 // Generates a large tree for testing the timing of the different implementations
@@ -329,7 +329,7 @@ let treeToList tree =
     // the depth argument is our way of keeping track 
     // of the depth of the current node in the tree
     let rec treeToList_inner tree (depth:int) =
-        let yoffset = depth*(-50);
+        let yoffset = (float)depth*(-50.0);
         match tree with 
         |  (Node((label, position:float),[]))  -> draw_leaf position yoffset label
         |  (Node((label, position:float),st))  -> if (get_width st <> 0.0) then 
