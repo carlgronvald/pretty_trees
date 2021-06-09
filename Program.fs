@@ -222,17 +222,17 @@ let draw_header =
 //Functions for drawing the tree:
 
 let draw_horizontal_line position yoffset st = 
-    [(string)((position*30.0)-((get_width st)*30.0)/2.0) ; " " ; string(yoffset+(-40));" moveto \n";  
-    (string)((position*30.0)+((get_width st)*30.0)/2.0) ; " " ; string(yoffset+(-40));" lineto \n"]
+    [(string)((position*30.0)-((get_width st)*30.0)/2.0) ; " " ; string(yoffset+(-40.0));" moveto \n";  
+    (string)((position*30.0)+((get_width st)*30.0)/2.0) ; " " ; string(yoffset+(-40.0));" lineto \n"]
                                                                         
 let draw_node_label position yoffset label d =
-    [(string)(position*30.0);" ";string(yoffset+d));
+    [(string)(position*30.0);" ";string(yoffset+(float)d);
     " moveto \n(";(string)label;
     ") dup stringwidth pop 2 div neg 0 rmoveto show\n";]
 
 let draw_vertical_line position yoffset d1 d2 =
-    [(string)(position*30.0);" ";string(yoffset+d1);
-    " moveto\n";(string)(position*30.0);" ";(string)((yoffset+d2));
+    [(string)(position*30.0);" ";string(yoffset+(float)d1);
+    " moveto\n";(string)(position*30.0);" ";(string)((yoffset+(float)d2));
     " lineto\n"]
 
 let draw_upwards_line position yoffset label =
@@ -264,8 +264,8 @@ let draw_nodes_and_vertical_lines position yoffset label d =
         //[(string)(position*30.0);" ";string(yoffset+(-25));
         //" moveto \n(";(string)label;
         //") dup stringwidth pop 2 div neg 0 rmoveto show\n";] @
-        (draw_node_label position yoffset -25) @ // Node label
-            (draw_vertical_line yoffset -30 -40) // Draw downwards line
+        (draw_node_label position yoffset label -25) @ // Node label
+            (draw_vertical_line position yoffset -30 -40) // Draw downwards line
 
         // This block draws the vertical line downwards
         //(string)(position*30.0);" ";string(yoffset+(-30));
@@ -273,12 +273,12 @@ let draw_nodes_and_vertical_lines position yoffset label d =
         //" lineto\n"]
 
 let draw_leaf position yoffset label = 
-    [(string)(position*30.0);" ";string(yoffset+(-10));
+    [(string)(position*30.0);" ";string(yoffset+(-10.0));
     " moveto \n(";(string)label;
     ") dup stringwidth pop 2 div neg 0 rmoveto show\n";
 
-    (string)(position*30.0);" ";string((yoffset+10)+(-10));
-    " moveto\n";(string)(position*30.0);" ";(string)((yoffset+10)+(20));
+    (string)(position*30.0);" ";string((yoffset+10.0)+(-10.0));
+    " moveto\n";(string)(position*30.0);" ";(string)((yoffset+10.0)+(20.0));
     " lineto\n"]
 
 // Generates a large tree for testing the timing of the different implementations
@@ -293,7 +293,7 @@ let treeToList tree =
     // the depth argument is our way of keeping track 
     // of the depth of the current node in the tree
     let rec treeToList_inner tree (depth:int) =
-        let yoffset = depth*(-50);
+        let yoffset = (float)depth*(-50.0);
         match tree with 
         |  (Node((label, position:float),[]))  -> draw_leaf position yoffset label
         |  (Node((label, position:float),st))  -> if (get_width st <> 0.0) then 
