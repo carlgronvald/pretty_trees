@@ -225,10 +225,15 @@ let draw_horizontal_line position yoffset st =
     [(string)((position*30.0)-((get_width st)*30.0)/2.0) ; " " ; string(yoffset+(-40));" moveto \n";  
     (string)((position*30.0)+((get_width st)*30.0)/2.0) ; " " ; string(yoffset+(-40));" lineto \n"]
                                                                         
-let draw_node_label position yoffset label =
-    [(string)(position*30.0);" ";string(yoffset+(-10));
+let draw_node_label position yoffset label d =
+    [(string)(position*30.0);" ";string(yoffset+d));
     " moveto \n(";(string)label;
     ") dup stringwidth pop 2 div neg 0 rmoveto show\n";]
+
+let draw_vertical_line position yoffset d1 d2 =
+    [(string)(position*30.0);" ";string(yoffset+d1);
+    " moveto\n";(string)(position*30.0);" ";(string)((yoffset+d2));
+    " lineto\n"]
 
 let draw_upwards_line position yoffset label =
     [(string)(position*30.0);" ";string((yoffset+10)+(-10));
@@ -242,12 +247,13 @@ let draw_nodes_and_vertical_lines position yoffset label d =
         //[(string)(position*30.0);" ";string(yoffset+(-10));
         //" moveto \n(";(string)label;
         //") dup stringwidth pop 2 div neg 0 rmoveto show\n";
-        (draw_node_label position yoffset label) @
-            (draw_upwards_line position yoffset label)@
+        (draw_node_label position yoffset label -10) @ // Node label
+            (draw_vertical_line position yoffset 0 10)@ // Upwards line
+            (draw_vertical_line position yoffset -15 -30) // Downwards line
         // This block draws the vertical line downwards
-            [(string)(position*30.0);" ";string(yoffset+(-15));
-        " moveto\n";(string)(position*30.0);" ";(string)(yoffset+(-30));
-        " lineto\n"]
+            //[(string)(position*30.0);" ";string(yoffset+(-15));
+        //" moveto\n";(string)(position*30.0);" ";(string)(yoffset+(-30));
+        //" lineto\n"]
 
         // This block draws the vertical line upwards
         //(string)(position*30.0);" ";string((yoffset+10)+(-10));
@@ -255,14 +261,16 @@ let draw_nodes_and_vertical_lines position yoffset label d =
         //" lineto\n"]
     else 
         // This block draws the label for the root 
-        [(string)(position*30.0);" ";string(yoffset+(-25));
-        " moveto \n(";(string)label;
-        ") dup stringwidth pop 2 div neg 0 rmoveto show\n";
+        //[(string)(position*30.0);" ";string(yoffset+(-25));
+        //" moveto \n(";(string)label;
+        //") dup stringwidth pop 2 div neg 0 rmoveto show\n";] @
+        (draw_node_label position yoffset -25) @ // Node label
+            (draw_vertical_line yoffset -30 -40) // Draw downwards line
 
         // This block draws the vertical line downwards
-        (string)(position*30.0);" ";string(yoffset+(-30));
-        " moveto\n";(string)(position*30.0);" ";(string)(yoffset+(-40));
-        " lineto\n"]
+        //(string)(position*30.0);" ";string(yoffset+(-30));
+        //" moveto\n";(string)(position*30.0);" ";(string)(yoffset+(-40));
+        //" lineto\n"]
 
 let draw_leaf position yoffset label = 
     [(string)(position*30.0);" ";string(yoffset+(-10));
