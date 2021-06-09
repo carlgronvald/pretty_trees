@@ -172,10 +172,6 @@ let flat_bfs tree =
             helper (rest@ts) (Node(x,ts)::acc)
     helper [tree] []
 
-<<<<<<< HEAD
-
-=======
->>>>>>> ec20dc80acc62427ff2744ff951f6837f37f87f3
 let matching_pairs pairs = List.fold (fun s (x,y) -> s && x = y) true pairs
 
 let matching_preorder given_preorder node =
@@ -198,14 +194,11 @@ let all_equivalent_subtrees_match positioned_tree positioned_subtree =
     let matching_designs = List.map (same_design positioned_subtree) equivalent_trees
     List.reduce (&&) matching_designs
 
-<<<<<<< HEAD
-=======
 
 
 
 
 
->>>>>>> ec20dc80acc62427ff2744ff951f6837f37f87f3
 /// TODO: EITHER IMPLEMENT OR REMOVE THIS
 /// Finds the least right positions of all subtrees with passed extents.
 /// Does exactly the opposite of fit_list_right
