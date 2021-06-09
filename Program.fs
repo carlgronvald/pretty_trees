@@ -241,8 +241,8 @@ let draw_upwards_line position yoffset label =
     " lineto\n"]
 
 
-let draw_nodes_and_vertical_lines position yoffset label d =
-    if d > 1 then // non-root non-leave
+let draw_node position yoffset label d =
+    if d > 1 then // non-root non-leaf
         (draw_node_label position yoffset label -10) @ // Node label
             (draw_vertical_line position yoffset 0 10)@ // Upwards line
             (draw_vertical_line position yoffset -15 -30) // Downwards line
@@ -253,13 +253,6 @@ let draw_nodes_and_vertical_lines position yoffset label d =
 let draw_leaf position yoffset label = 
     (draw_node_label position yoffset label -10) @
         (draw_vertical_line position yoffset 0 30)
-    //[(string)(position*30.0);" ";string(yoffset+(-10.0));
-    //" moveto \n(";(string)label;
-    //") dup stringwidth pop 2 div neg 0 rmoveto show\n";
-
-    //(string)(position*30.0);" ";string((yoffset+10.0)+(-10.0));
-    //" moveto\n";(string)(position*30.0);" ";(string)((yoffset+10.0)+(20.0));
-    //" lineto\n"]
 
 // Generates a large tree for testing the timing of the different implementations
 let rec generate_test_tree n =
@@ -278,10 +271,10 @@ let treeToList tree =
         |  (Node((label, position:float),[]))  -> draw_leaf position yoffset label
         |  (Node((label, position:float),st))  -> if (get_width st <> 0.0) then 
                                                         (draw_horizontal_line position yoffset st)@
-                                                        (draw_nodes_and_vertical_lines position yoffset label depth)
+                                                        (draw_node position yoffset label depth)
                                                         @(List.fold (fun s t -> s@(treeToList_inner t (depth+1))) [] st)
                                                     else 
-                                                        (draw_nodes_and_vertical_lines position yoffset label depth)
+                                                        (draw_node position yoffset label depth)
                                                         @(List.fold (fun s t -> s@(treeToList_inner t (depth+1))) [] st) 
     //"Glueing" the ps header and the footer to the generated ps code    
     draw_header @ treeToList_inner tree 1 @ draw_footer
