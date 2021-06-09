@@ -358,11 +358,12 @@ let treeToList tree =
     //"Glueing" the ps header and the footer to the generated ps code    
     draw_header @ treeToList_inner tree 1 @ draw_footer
 
-let TreeToPsSlow    = treeToList >> List.fold (fun a b -> a+b) "" 
-let TreeToPsFast    = treeToList >> String.concat ""
- 
-open AST
+let TreeToPsSlow tree   = (treeToList >> List.fold (fun a b -> a+b) "") tree
+let TreeToPsFast tree   = (treeToList >> String.concat "") tree
 
+
+// ----------------------- PARSING OF THE GIVEN AST BELOW --------------------------------
+open AST
 /// Parses a type in the AST
 let rec parse_type (typ:Typ) =
     match typ with
@@ -447,14 +448,13 @@ let it : Program =
               Ass (AVar "x",Apply ("+",[Access (AVar "x"); N 1]))])]);
       PrintLn (Access (AVar "x"))])
 
-let tree = toGeneralTree it
 
-//printfn "%A" (toGeneralTree it)
-TreeToPsFast (absolute_positioned_tree (design tree)) |> ignore
+///Saves a relative positioned tree to file with given path (a designed tree)
 open System.IO
 let pos_tree_to_file path postree =
-    File.WriteAllText (path, TreeToPsSlow (absolute_positioned_tree postree)) 
+    File.WriteAllText (path, TreeToPsFast (absolute_positioned_tree postree)) 
 
+/// Saves any tree to file with given path
 let tree_to_file path tree =
     pos_tree_to_file path (design tree)
 
@@ -466,14 +466,14 @@ let main argv =
     let absolut_tree = absolute_positioned_tree k
 
     let tree_string = TreeToPsSlow absolut_tree
-    // // printfn "%A" (draw_header+tree_string+draw_footer)
-    // File.WriteAllText("./generated_file.ps", tree_string)
     printfn "%A" tree_string
 
-    tree_to_file "../../../../output.ps" tree
+    it |> toGeneralTree |> (tree_to_file "AST.ps")
     printfn "Output a tree!"
     
-    (*
+    
+    (* FsCheck and timing code underneath
+
     // FSCHECK: Criterion 1
     printfn "\n\nFsCheck Criterion 1 test:"
     let check_criterion1 test_tree = check_positions (absolute_positioned_tree (design test_tree))
