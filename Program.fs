@@ -5,9 +5,9 @@ open System.IO
 open System
 open FsCheck
 
+
 type Tree<'a> = Node of 'a * Tree<'a> list
 //let t = Node('a', [Node('b', [Node('c',[])]); Node('d',[]); Node('e',[Node('f',[])])])
-let t = Node('a', [Node('b', [Node('c',[])]); Node('a', [Node('b', [Node('c',[])]); Node('d',[]); Node('e',[Node('f',[])])]); Node('e',[Node('f',[])])])
 
 //let t = Node('a', [Node('b', [Node('a', [Node('b', [Node('c',[])]); Node('d',[]); Node('e',[Node('f',[])])])]); Node('d',[]); Node('e',[Node('f',[])])])
 
@@ -217,7 +217,7 @@ let draw_footer =
 
 
 let draw_header = 
-    "%!\n<</PageSize[1400 1000]/ImagingBBox null>> setpagedevice\n1 1 scale\n700 999 translate\nnewpath\n/Times-Roman findfont 10 scalefont setfont\n"
+    "%!\n<</PageSize[1400 1000]/ImagingBBox null>> setpagedevice\n1 1 scale\n700 999 translate\nnewpath\n/Times-Roman findfont 5 scalefont setfont\n"
 
 
 let draw_horizontal_line position yoffset st = 
@@ -225,58 +225,127 @@ let draw_horizontal_line position yoffset st =
     (string)((position*30.0)+((get_width st)*30.0)/2.0) + " " + string(yoffset+(-40))+" lineto \n"
                                                                         
 
-let draw_nodes_and_vertical_lines position yoffset label d =
+(*======================LABEL SPLITTING BEGIN======================================*)
+let calculateLines (str:String) : int = int(str.Length/8)
+
+// split according to 
+let string2Words s =
+    let split s = 
+        let rec scan (s:string) i =
+            if s.Length = 0 then []
+            elif (i+1)%8 = 0 then [s.[..i]; s.[i+1..]]
+            elif i = (s.Length - 1) then [s]
+            else scan s (i+1)
+        scan s 0
+    let rec fold acc s =
+        match split s with
+        | [x] -> acc @ [x]
+        | [head;tail] -> fold (acc @ [head]) tail
+        | _ -> acc
+    fold [] s
+
+// Split according to the space  
+let string2WordsSpace s =
+    let split s =
+        let rec scan (s:string) i =
+            if s.Length = 0 then []
+            elif s.[i] = ' ' && i = 0 then scan s.[i+1..] 0
+            elif s.[i] = ' ' then [s.[..i-1]; s.[i+1..]]
+            elif i = (s.Length - 1) then [s]
+            else scan s (i+1)
+        scan s 0
+    let rec fold acc s =
+        match split s with
+        | [x] -> acc @ [x]
+        | [head;tail] -> fold (acc @ [head]) tail
+        | _ -> acc
+    fold [] s
+
+let addNextLineToString (list:list<String>):String =
+    String.concat "\n" list
+    
+(*======================LABEL SPLITTING END======================================*)
+
+
+let draw_nodes_and_vertical_line_long_label position yoffset label d =
+    // let rec draw_label_per_line origin_label = 
+    let label_list = string2Words label
+    let label_list_draw_ps_not_root label_list = List.mapi (fun i  x ->          
+        // This block draws the label 
+        (string)(position*30.0)+" "+string(yoffset+(-5*i))+
+        " moveto \n("+x+
+        ") dup stringwidth pop 2 div neg 0 rmoveto show\n") label_list  
+    
+    let label_list_draw_ps_root label_list =List.mapi (fun i x ->          // This block draws the label 
+        (string)(position*30.0)+" "+string(yoffset+(-15-5*i))+
+        " moveto \n("+x+
+        ") dup stringwidth pop 2 div neg 0 rmoveto show\n") label_list
+      
     if d > 1 then // non-root non-leave
         // This block draws the label 
-        (string)(position*30.0)+" "+string(yoffset+(-10))+
-        " moveto \n("+(string)label+
-        ") dup stringwidth pop 2 div neg 0 rmoveto show\n"+
+        // (string)(position*30.0)+" "+string(yoffset+(-10))+
+        // " moveto \n("+(addNextLineToString (string2WordsSpace label))+
+        // ") dup stringwidth pop 2 div neg 0 rmoveto show\n"+
+        addNextLineToString (label_list_draw_ps_not_root label_list)+
+        
 
         // This block draws the vertical line downwards
-        (string)(position*30.0)+" "+string(yoffset+(-15))+
+        (string)(position*30.0)+" "+string(yoffset+(-5*label_list.Length))+
         " moveto\n"+(string)(position*30.0)+" "+(string)(yoffset+(-30))+
         " lineto\n"+
 
         // This block draws the vertical line upwards
-        (string)(position*30.0)+" "+string((yoffset+10)+(-10))+
+        (string)(position*30.0)+" "+string((yoffset+10)+(-5))+
         " moveto\n"+(string)(position*30.0)+" "+(string)((yoffset+10)+(0))+
         " lineto\n"
     else 
         // This block draws the label for the root 
-        (string)(position*30.0)+" "+string(yoffset+(-25))+
-        " moveto \n("+(string)label+
-        ") dup stringwidth pop 2 div neg 0 rmoveto show\n"+
+        // (string)(position*30.0)+" "+string(yoffset+(-25))+
+        // " moveto \n("+(addNextLineToString (string2WordsSpace label))+
+        // ") dup stringwidth pop 2 div neg 0 rmoveto show\n"+
+        addNextLineToString (label_list_draw_ps_root label_list)+
 
         // This block draws the vertical line downwards
-        (string)(position*30.0)+" "+string(yoffset+(-30))+
+        (string)(position*30.0)+" "+string(yoffset-8*(label_list.Length))+
         " moveto\n"+(string)(position*30.0)+" "+(string)(yoffset+(-40))+
         " lineto\n"
 
-let draw_leaf position yoffset label = 
-    (string)(position*30.0)+" "+string(yoffset+(-10))+
-    " moveto \n("+(string)label+
-    ") dup stringwidth pop 2 div neg 0 rmoveto show\n"+
 
-    (string)(position*30.0)+" "+string((yoffset+10)+(-10))+
+
+let draw_leaf_long_label position yoffset label = 
+    let label_list = string2Words label
+    let label_list_draw_ps label_list = List.mapi (fun i x ->          // This block draws the label 
+        (string)(position*30.0)+" "+string(yoffset+(-5*i))+" moveto \n("+x+
+        ") dup stringwidth pop 2 div neg 0 rmoveto show\n") label_list  
+
+    // (string)(position*30.0)+" "+string(yoffset+(-10))+
+    // " moveto \n("+(string)label+
+    // ") dup stringwidth pop 2 div neg 0 rmoveto show\n"+
+    addNextLineToString (label_list_draw_ps label_list)+
+ 
+    (string)(position*30.0)+" "+string((yoffset+10)+(-5))+
     " moveto\n"+(string)(position*30.0)+" "+(string)((yoffset+10)+(20))+
     " lineto\n"
 
 
-let rec draw_tree tree (depth:int) =
+let rec draw_tree_long_label tree (depth:int) =
     let yoffset = depth*(-50);
     match tree with 
-    |  (Node((label, position:float),[]))  -> draw_leaf position yoffset label
+    |  (Node((label, position:float),[]))  -> draw_leaf_long_label position yoffset label
     |  (Node((label, position:float),st))  -> if (get_width st <> 0.0) then 
                                                     (draw_horizontal_line position yoffset st)+
-                                                    (draw_nodes_and_vertical_lines position yoffset label depth)+
-                                                    (List.fold (fun s t -> s+(draw_tree t (depth+1))) "" st)
+                                                    (draw_nodes_and_vertical_line_long_label position yoffset label depth)+
+                                                    (List.fold (fun s t -> s+(draw_tree_long_label t (depth+1))) "" st)
                                                 else 
-                                                    (draw_nodes_and_vertical_lines position yoffset label depth)+
-                                                    (List.fold (fun s t -> s+(draw_tree t (depth+1))) "" st) 
+                                                    (draw_nodes_and_vertical_line_long_label position yoffset label depth)+
+                                                    (List.fold (fun s t -> s+(draw_tree_long_label t (depth+1))) "" st) 
+
+
 
 
 [<EntryPoint>]
 let main argv =
+    let t = Node("abcdefghigkhjlkjsjsjsjadsjdasa", [Node("a", [Node("sdadqwqeqweqwe",[])]); Node("sadasdasdasds", [Node("b", [Node("sadsadasdsads",[])]); Node("sssssssssssssssssss",[]); Node("eeeeeeeeeeeeeeeeee",[Node("ffffffffffffffffff",[])])]); Node("dsaoooooooooooooooo",[Node("kkkkkkkkkkkkkkkkkk",[])])])
     printfn ""
     let k = design t
     let absolut_tree = absolute_positioned_tree k
@@ -311,8 +380,8 @@ let main argv =
     
     Check.Quick check_criterion4
     *)
-    let tree_string = draw_tree absolut_tree 1
-    printfn "%A" (draw_header+tree_string+draw_footer)
+    let tree_string = draw_tree_long_label absolut_tree 1
+    // printfn "%A" (draw_header+tree_string+draw_footer)
     File.WriteAllText("./generated_file.ps", draw_header+tree_string+draw_footer)
 
     1
