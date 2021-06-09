@@ -172,7 +172,7 @@ let flat_bfs tree =
 
 
 
-
+// Criterion 4 functions
 let matching_pairs pairs = List.fold (fun s (x,y) -> s && x = y) true pairs
 
 let matching_preorder given_preorder node =
@@ -191,6 +191,10 @@ let all_equivalent_subtrees_match positioned_tree positioned_subtree =
     let equivalent_trees = List.filter (matching_preorder (preorder positioned_subtree)) (flat_bfs positioned_tree)
     let matching_designs = List.map (same_design positioned_subtree) equivalent_trees
     List.reduce (&&) matching_designs
+
+
+
+
 
 
 /// TODO: EITHER IMPLEMENT OR REMOVE THIS
