@@ -6,7 +6,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Program.fs" />
-    <!-- <Compile Include="WenjieTry.fs" /> -->
+    <!-- <Compile Include="SplitLabel.fs" /> -->
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="FsCheck" Version="2.15.3" />
